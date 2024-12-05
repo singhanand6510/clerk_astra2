@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
   if (eventType === "user.created") {
     const { id, username, email_addresses } = evt.data
-    console.log("Our User ", id, username, email_addresses)
+    console.log("Our User ", id, username, email_addresses[0].email_address)
     //call server action to create user to database
 
     NextResponse.json("User created")
