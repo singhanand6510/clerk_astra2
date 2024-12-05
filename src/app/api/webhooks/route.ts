@@ -1,8 +1,11 @@
 import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { WebhookEvent } from "@clerk/nextjs/server"
-
+import * as uuid from "uuid"
 import { NextResponse } from "next/server"
+import { createUser } from "@/lib/database/actions/user.actions"
+
+const uuidv4 = uuid.v4
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
@@ -50,14 +53,48 @@ export async function POST(req: Request) {
   // Do something with payload
   // For this guide, log payload to console
 
+  const id = evt.data.id as string
   const eventType = evt.type
 
-  if (eventType === "user.created") {
-    const { id, username, email_addresses } = evt.data
-    console.log("Our User ", id, username, email_addresses[0].email_address)
-    //call server action to create user to database
+  // if (eventType === "user.created") {
+  //   const { id, username, email_addresses } = evt.data
+  //   console.log("Our User ", id, username, email_addresses[0].email_address)
+  //   //call server action to create user to database
 
-    NextResponse.json("User created")
+  //   NextResponse.json("User created")
+  // }
+
+  if (eventType === "user.created") {
+    const { email_addresses, id, username, image_url, first_name, last_name } = evt.data
+    console.log("Our User ", email_addresses[0].email_address, id, username, image_url, first_name, last_name)
+
+    try {
+      const user = {
+        _id: uuidv4(), // UUID for _id
+        clerkId: id,
+        email: email_addresses[0].email_address,
+        username: username || "",
+        firstName: first_name || "",
+        lastName: last_name || "",
+        photo: image_url,
+        createdAt: new Date(), // Optional creation date
+      }
+
+      const newUser = await createUser(user)
+
+      console.log("User created:", newUser)
+
+      // await clerkClient.users.updateUserMetadata(id, {
+      //   publicMetadata: {
+      //     userId: newUser._id,
+      //   },
+      // })
+
+      return NextResponse.json({ message: "New user created", user: newUser })
+    } catch (error) {
+      console.error("Error creating user in AstraDB:", (error as Error).message)
+      return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
+    }
   }
 
   if (eventType === "user.deleted") {
