@@ -1,64 +1,26 @@
-import mongoose from "mongoose"
-import { driver, createAstraUri } from "stargate-mongoose"
+import { DataAPIClient } from "@datastax/astra-db-ts"
 
-export const connectToAstraDb = async (): Promise<void> => {
-  try {
-    const uri = createAstraUri(process.env.ASTRA_DB_API_END_POINT!, process.env.ASTRA_DB_APPLICATION_TOKEN!, process.env.ASTRA_DB_KEYSPACE!, process.env.ASTRA_DB_ID!)
+let client: DataAPIClient | null = null
+let db: any = null
 
-    // If already connected, disconnect before reconnecting
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect()
-      console.log("Disconnected previous Mongoose connection.")
+export async function getAstraClient() {
+  if (client === null) {
+    client = new DataAPIClient(process.env.ASTRA_DB_APPLICATION_TOKEN!)
+    db = client.db(process.env.ASTRA_DB_ENDPOINT!, { keyspace: process.env.ASTRA_DB_KEYSPACE })
+
+    // Test the connection
+    try {
+      const colls = await db.listCollections()
+      console.log("Connected to AstraDB:", colls)
+    } catch (error) {
+      console.error("Failed to connect to AstraDB:", error)
+      throw error
     }
-
-    // Set necessary Mongoose configurations
-    mongoose.set("autoCreate", true)
-    mongoose.setDriver(driver)
-
-    // Establish the connection to AstraDB
-    await mongoose.connect(uri, {
-      isAstra: true,
-    })
-
-    console.log("Connected to AstraDB successfully.")
-  } catch (error) {
-    console.error("Error connecting to AstraDB:", error)
-    throw error
   }
+  return db
 }
 
-// import mongoose, { Mongoose } from "mongoose"
-
-// const MONGODB_URL = process.env.MONGODB_URL!
-
-// interface MongooseConnection {
-//   conn: Mongoose | null
-//   promise: Promise<Mongoose> | null
-// }
-
-// let cached: MongooseConnection = (global as any).mongoose
-
-// if (!cached) {
-//   cached = (global as any).mongoose = {
-//     conn: null,
-//     promise: null,
-//   }
-// }
-
-// export const connectToDatabase = async () => {
-//   if (cached.conn) return cached.conn
-
-//   if (!MONGODB_URL) throw new Error("MONGODB_URL not Defined")
-
-//   cached.promise =
-//     cached.promise ||
-//     mongoose.connect(MONGODB_URL, {
-//       dbName: "ASK-YT_db",
-//       bufferCommands: false,
-//       connectTimeoutMS: 30000,
-//     })
-
-//   cached.conn = await cached.promise
-
-//   return cached.conn
-// }
+export async function getAstraCollection(collectionName: string) {
+  const astraDb = await getAstraClient()
+  return astraDb.collection(collectionName)
+}

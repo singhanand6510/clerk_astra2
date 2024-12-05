@@ -1,11 +1,8 @@
 import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { WebhookEvent } from "@clerk/nextjs/server"
-// import * as uuid from "uuid"
 import { NextResponse } from "next/server"
-import { createUser } from "@/lib/database/actions/user.actions"
-
-// const uuidv4 = uuid.v4
+import { createUser, updateUser } from "@/lib/database/actions/user.actions"
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
@@ -50,45 +47,23 @@ export async function POST(req: Request) {
     })
   }
 
-  // Do something with payload
-  // For this guide, log payload to console
-
-  const id = evt.data.id as string
   const eventType = evt.type
-
-  // if (eventType === "user.created") {
-  //   const { id, username, email_addresses } = evt.data
-  //   console.log("Our User ", id, username, email_addresses[0].email_address)
-  //   //call server action to create user to database
-
-  //   NextResponse.json("User created")
-  // }
 
   if (eventType === "user.created") {
     const { email_addresses, id, username, image_url, first_name, last_name } = evt.data
-    console.log("Our User ", email_addresses[0].email_address, id, username, image_url, first_name, last_name)
 
     try {
       const user = {
-        // _id: uuidv4(), // UUID for _id
         clerkId: id,
-        email: email_addresses[0].email_address,
-        username: username || "",
-        firstName: first_name || "",
-        lastName: last_name || "",
+        email: email_addresses[0]?.email_address,
+        username: username || undefined,
+        firstName: first_name || undefined,
+        lastName: last_name || undefined,
         photo: image_url,
-        createdAt: new Date(), // Optional creation date
       }
 
       const newUser = await createUser(user)
-
       console.log("User created:", newUser)
-
-      // await clerkClient.users.updateUserMetadata(id, {
-      //   publicMetadata: {
-      //     userId: newUser._id,
-      //   },
-      // })
 
       return NextResponse.json({ message: "New user created", user: newUser })
     } catch (error) {
@@ -97,24 +72,39 @@ export async function POST(req: Request) {
     }
   }
 
-  if (eventType === "user.deleted") {
-    const { id } = evt.data
-    console.log("Our deleted user details:", id)
-
-    //call server action to delete user from database
-
-    NextResponse.json("deleted successfully")
-  }
-
   if (eventType === "user.updated") {
-    const { id, username, email_addresses } = evt.data
-    console.log("Our updated user details", id, username, email_addresses)
+    const { id, username, email_addresses, image_url, first_name, last_name } = evt.data
 
-    //call server action to update user on the database
+    try {
+      const updatedUser = await updateUser(id, {
+        username: username || undefined,
+        email: email_addresses[0]?.email_address,
+        photo: image_url,
+        firstName: first_name || undefined,
+        lastName: last_name || undefined,
+      })
+
+      console.log("User updated:", updatedUser)
+      return NextResponse.json({ message: "User updated", user: updatedUser })
+    } catch (error) {
+      console.error("Error updating user in AstraDB:", (error as Error).message)
+      return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
+    }
   }
 
-  console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
-  console.log("Webhook body:", body)
+  // if (eventType === "user.deleted") {
+  //   const { id } = evt.data
 
-  return new Response("everything good", { status: 200 })
+  //   try {
+  //     await deleteUser(id)
+  //     console.log("User deleted:", id)
+  //     return NextResponse.json({ message: "User deleted successfully" })
+  //   } catch (error) {
+  //     console.error("Error deleting user from AstraDB:", (error as Error).message)
+  //     return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
+  //   }
+  // }
+
+  console.log(`Webhook with an ID of ${evt.data.id} and type of ${eventType}`)
+  return new Response("Webhook processed", { status: 200 })
 }
