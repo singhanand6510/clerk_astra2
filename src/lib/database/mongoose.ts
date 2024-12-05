@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataAPIClient } from "@datastax/astra-db-ts"
 
 let client: DataAPIClient | null = null
