@@ -1,11 +1,11 @@
 import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { WebhookEvent } from "@clerk/nextjs/server"
-import * as uuid from "uuid"
+// import * as uuid from "uuid"
 import { NextResponse } from "next/server"
 import { createUser } from "@/lib/database/actions/user.actions"
 
-const uuidv4 = uuid.v4
+// const uuidv4 = uuid.v4
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 
     try {
       const user = {
-        _id: uuidv4(), // UUID for _id
+        // _id: uuidv4(), // UUID for _id
         clerkId: id,
         email: email_addresses[0].email_address,
         username: username || "",
