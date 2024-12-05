@@ -113,5 +113,8 @@ export async function POST(req: Request) {
     //call server action to update user on the database
   }
 
+  console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
+  console.log("Webhook body:", body)
+
   return new Response("everything good", { status: 200 })
 }
