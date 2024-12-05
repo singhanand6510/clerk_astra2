@@ -8,7 +8,7 @@ import { handleError } from "@/lib/utils"
 export async function createUser(user: CreateUserParams) {
   try {
     await connectToAstraDb()
-    const newUser = await User.create(user)
+    const newUser = await User.insertMany(user)
     return JSON.parse(JSON.stringify(newUser))
   } catch (error) {
     handleError(error)
