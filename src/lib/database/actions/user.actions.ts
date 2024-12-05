@@ -5,17 +5,35 @@ import User from "../models/user.model"
 import { connectToAstraDb } from "../mongoose"
 import { handleError } from "@/lib/utils"
 
+// export async function createUser(user: CreateUserParams) {
+//   try {
+//     await connectToAstraDb()
+//     const newUser = await User.create(user)
+//     return JSON.parse(JSON.stringify(newUser))
+//   } catch (error) {
+//     handleError(error)
+//   }
+// }
+
+// READ
+
 export async function createUser(user: CreateUserParams) {
   try {
     await connectToAstraDb()
-    const newUser = await User.insertMany(user)
+    console.log("Attempting to create user:", user)
+    const newUser = await User.create(user)
+    console.log("User created successfully:", newUser)
     return JSON.parse(JSON.stringify(newUser))
   } catch (error) {
-    handleError(error)
+    console.error("Error in createUser:", error)
+    if (error instanceof Error) {
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
+    }
+    throw error // Re-throw the error to be handled by the caller
   }
 }
 
-// READ
 export async function getUserById(userId: string) {
   try {
     await connectToAstraDb()
