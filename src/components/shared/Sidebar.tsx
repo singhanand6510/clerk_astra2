@@ -36,7 +36,6 @@ const Sidebar = () => {
               {/* User Button */}
               <li className="mt-6">
                 <UserButton
-                  afterSignOutUrl="/"
                   appearance={{
                     elements: {
                       userButtonAvatarBox: "h-8 w-8",
