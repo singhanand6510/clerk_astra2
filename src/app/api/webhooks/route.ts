@@ -57,18 +57,25 @@ export async function POST(req: Request) {
   if (eventType === "user.created") {
     const { email_addresses, image_url, first_name, last_name, username } = evt.data
 
-    //call server action to create user to database
-    await createUser({
-      clerkId: id,
-      email: email_addresses[0].email_address,
-      username: username || "",
-      firstName: first_name || "",
-      lastName: last_name || "",
-      photo: image_url,
-      // createdAt: new Date(), // Optional creation date
-    })
+    try {
+      const user = {
+        clerkId: id,
+        email: email_addresses[0].email_address,
+        username: username || "",
+        firstName: first_name || "",
+        lastName: last_name || "",
+        photo: image_url,
+      }
 
-    NextResponse.json("User created")
+      const newUser = await createUser(user)
+
+      console.log("User created:", newUser)
+
+      return NextResponse.json({ message: "New user created", user: newUser })
+    } catch (error) {
+      console.error("Error creating user in AstraDB:", (error as Error).message)
+      return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
+    }
   }
 
   if (eventType === "user.deleted") {
