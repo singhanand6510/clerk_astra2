@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       firstName: first_name || "",
       lastName: last_name || "",
       photo: image_url,
-      createdAt: new Date(), // Optional creation date
+      // createdAt: new Date(), // Optional creation date
     })
 
     NextResponse.json("User created")
