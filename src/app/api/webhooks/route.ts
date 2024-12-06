@@ -1,18 +1,19 @@
 import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { WebhookEvent } from "@clerk/nextjs/server"
+
 import { NextResponse } from "next/server"
-import { createUser, updateUser } from "@/lib/database/actions/user.actions"
+import { createUser } from "@/lib/database/actions/user.actions"
 
 export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
+  const SIGNING_SECRET = process.env.SIGNING_SECRET
 
-  if (!WEBHOOK_SECRET) {
-    throw new Error("Error: Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local")
+  if (!SIGNING_SECRET) {
+    throw new Error("Error: Please add SIGNING_SECRET from Clerk Dashboard to .env or .env.local")
   }
 
   // Create new Svix instance with secret
-  const wh = new Webhook(WEBHOOK_SECRET)
+  const wh = new Webhook(SIGNING_SECRET)
 
   // Get headers
   const headerPayload = headers()
@@ -47,64 +48,42 @@ export async function POST(req: Request) {
     })
   }
 
+  // Do something with payload
+  // For this guide, log payload to console
+
   const eventType = evt.type
+  const id = evt.data.id as string
 
   if (eventType === "user.created") {
-    const { email_addresses, id, username, image_url, first_name, last_name } = evt.data
+    const { email_addresses, image_url, first_name, last_name, username } = evt.data
 
-    try {
-      const user = {
-        clerkId: id,
-        email: email_addresses[0]?.email_address,
-        username: username || undefined,
-        firstName: first_name || undefined,
-        lastName: last_name || undefined,
-        photo: image_url,
-      }
+    //call server action to create user to database
+    await createUser({
+      clerkId: id,
+      email: email_addresses[0].email_address,
+      username: username || "",
+      firstName: first_name || "",
+      lastName: last_name || "",
+      photo: image_url,
+      createdAt: new Date(), // Optional creation date
+    })
 
-      const newUser = await createUser(user)
-      console.log("User created:", newUser)
+    NextResponse.json("User created")
+  }
 
-      return NextResponse.json({ message: "New user created", user: newUser })
-    } catch (error) {
-      console.error("Error creating user in AstraDB:", (error as Error).message)
-      return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
-    }
+  if (eventType === "user.deleted") {
+    const { id } = evt.data
+    console.log("Our deleted user details", id)
+
+    //call server action to delete user from database
   }
 
   if (eventType === "user.updated") {
-    const { id, username, email_addresses, image_url, first_name, last_name } = evt.data
+    const { id } = evt.data
+    console.log("Our updated user details", id)
 
-    try {
-      const updatedUser = await updateUser(id, {
-        username: username || undefined,
-        email: email_addresses[0]?.email_address,
-        photo: image_url,
-        firstName: first_name || undefined,
-        lastName: last_name || undefined,
-      })
-
-      console.log("User updated:", updatedUser)
-      return NextResponse.json({ message: "User updated", user: updatedUser })
-    } catch (error) {
-      console.error("Error updating user in AstraDB:", (error as Error).message)
-      return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
-    }
+    //call server action to update user on the database
   }
 
-  // if (eventType === "user.deleted") {
-  //   const { id } = evt.data
-
-  //   try {
-  //     await deleteUser(id)
-  //     console.log("User deleted:", id)
-  //     return NextResponse.json({ message: "User deleted successfully" })
-  //   } catch (error) {
-  //     console.error("Error deleting user from AstraDB:", (error as Error).message)
-  //     return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
-  //   }
-  // }
-
-  console.log(`Webhook with an ID of ${evt.data.id} and type of ${eventType}`)
-  return new Response("Webhook processed", { status: 200 })
+  return new Response("everything good", { status: 200 })
 }

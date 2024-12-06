@@ -10,6 +10,7 @@ declare type CreateUserParams = {
   firstName: string
   lastName: string
   photo: string
+  createdAt: Date
 }
 
 declare type UpdateUserParams = {
