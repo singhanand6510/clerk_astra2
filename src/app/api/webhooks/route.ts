@@ -1,7 +1,6 @@
 import { Webhook } from "svix"
 import { headers } from "next/headers"
-import { WebhookEvent } from "@clerk/nextjs/server"
-
+import { clerkClient, WebhookEvent } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { createUser } from "@/lib/database/actions/user.actions"
 
@@ -68,6 +67,18 @@ export async function POST(req: Request) {
       }
 
       const newUser = await createUser(user)
+
+      // Set public metadata in clerk and Database as well, for smooth univrrsal fetching
+
+      if (newUser) {
+        const client = await clerkClient()
+
+        await client.users.updateUserMetadata(id, {
+          publicMetadata: {
+            userId: newUser._id,
+          },
+        })
+      }
 
       console.log("User created:", newUser)
 
