@@ -2,7 +2,7 @@ import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { clerkClient, WebhookEvent } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
-import { createUser } from "@/lib/database/actions/user.actions"
+import { createUser, deleteUser, updateUser } from "@/lib/database/actions/user.actions"
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
@@ -89,19 +89,33 @@ export async function POST(req: Request) {
     }
   }
 
+  // UPDATE
+  if (eventType === "user.updated") {
+    const { id, image_url, first_name, last_name, username } = evt.data
+
+    const user = {
+      firstName: first_name || "", // Default to empty string if null
+      lastName: last_name || "", // Default to empty string if null
+      username: username!,
+      photo: image_url,
+    }
+
+    const updatedUser = await updateUser(id, user)
+
+    return NextResponse.json({ message: "OK", user: updatedUser })
+  }
+
+  // DELETE
   if (eventType === "user.deleted") {
     const { id } = evt.data
-    console.log("Our deleted user details", id)
 
-    //call server action to delete user from database
+    const deletedUser = await deleteUser(id!)
+
+    return NextResponse.json({ message: "OK", user: deletedUser })
   }
 
-  if (eventType === "user.updated") {
-    const { id } = evt.data
-    console.log("Our updated user details", id)
-
-    //call server action to update user on the database
-  }
+  console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
+  console.log("Webhook body:", body)
 
   return new Response("everything good", { status: 200 })
 }
